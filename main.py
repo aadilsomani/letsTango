@@ -5,13 +5,20 @@ from pathlib import Path
 from app.board_parser import BoardParser
 from app.board_solver import BoardSolver
 
-def print_board(board: list[list[str]]) -> None:
-    for row in board:
+def createSignMap(signs: list[dict]) -> dict:
+    signMap = {}
+    for sign in signs:
+        signMap[tuple(sign["cells"])] = sign["type"]
+    return signMap
+
+def print_board(board: list[list[str]], signs: list[dict]) -> None:
+    # signMap = createSignMap(signs)
+    for row in range(len(board)):
         formatted_row = []
-        for cell in row:
-            if cell == "sun":
-                formatted_row.append("☀️ (sun)")
-            elif cell == "moon":
+        for cell in range(len(board[row])):
+            if board[row][cell] == "sun":
+                formatted_row.append("☀️  (sun)")
+            elif board[row][cell] == "moon":
                 formatted_row.append("🌙 (moon)")
             else:
                 formatted_row.append("⬜ (blank)")
@@ -52,7 +59,7 @@ def main() -> None:
     signs = parsed_result["signs"]
 
     print("\n[Initial Board]")
-    print_board(initial_board)
+    print_board(initial_board, signs)
     print(f"\nDetected {len(signs)} equality '=' and difference 'x' sign constraints.")
 
     print("\n--- Solving Board Puzzle ---")
@@ -62,11 +69,11 @@ def main() -> None:
     if solution["solved"]:
         print("\n\nPuzzle Solved Successfully!")
         print("\n[Final Board]")
-        print_board(solution["board"])
+        print_board(solution["board"], signs)
     else:
         print("\n\nCould not fully resolve the board with current rules.")
         print("\n[Partially Solved Board]")
-        print_board(solution["board"])
+        print_board(solution["board"], signs)
 
     print("\n[Deduction Trace Steps]")
     for idx, step in enumerate(solution["steps"], start=1):

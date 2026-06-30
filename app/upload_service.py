@@ -30,5 +30,5 @@ class UploadService:
 
 if __name__ == "__main__":
     service = UploadService()
-    example = service.parse_uploaded_file(b"", "example.png")
+    example = service.parse_uploaded_file(b"", "board.png")
     print(json.dumps(example, indent=2))

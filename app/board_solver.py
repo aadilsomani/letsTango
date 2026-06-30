@@ -1,6 +1,8 @@
 from __future__ import annotations
 from typing import List, Tuple, Dict, Any
 
+from app.board_parser import BoardParser
+
 class BoardSolver:
     def __init__(self, board: List[List[str]], signs: List[Dict[str, Any]]) -> None:
         self.grid_size = len(board)
@@ -236,3 +238,9 @@ class BoardSolver:
                 self.steps.append(f"Filled ({r1}, {c1}) with '{self.board[r1][c1]}' via 'x' sign from ({r2}, {c2})")
                 return True
         return False
+
+if __name__ == "__main__":
+    board = BoardParser().parse_image("board.png")
+    solver = BoardSolver(board["board"], board["signs"])
+    solver.solve()
+    print(solver.board)

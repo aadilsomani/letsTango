@@ -29,6 +29,7 @@ class BoardParser:
 
         # Pre-crop the image to isolate the board using precise pixel values
         img_cropped = self._crop_image(img)
+        # img_cropped = img
 
         img_rgb = cv2.cvtColor(img_cropped, cv2.COLOR_BGR2RGB)
         board_box = self._find_board_region(img_rgb)
@@ -162,7 +163,6 @@ class BoardParser:
             return "moon"
         if self._color_matches((r, g, b), self.sun_color):
             return "sun"
-        print(r,g,b)
         return "blank"
 
     def _color_matches(self, pixel_rgb: Tuple[int, int, int], target_rgb: Tuple[int, int, int]) -> bool:
