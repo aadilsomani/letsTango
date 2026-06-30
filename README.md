@@ -15,4 +15,4 @@ This workspace contains a small Python prototype for turning a screenshot of a T
 ## Next steps
 1. Add a small Flask or FastAPI endpoint for image upload.
 2. Detect the board region more accurately from real screenshots.
-3. Extend the parser to identify `x` and `=` markers as separate tokens.
+3. Add more solving logic strategies/conditions
