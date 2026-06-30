@@ -22,12 +22,17 @@ class BoardParser:
         self.sun_color = sun_color
         self.tolerance = tolerance
 
-    def parse_image(self, image_path: str | Path) -> dict:
-        img = cv2.imread(str(image_path))
-        if img is None:
-            raise FileNotFoundError(f"Could not read image: {image_path}")
+    def parse_image(self, image_input: str | Path | np.ndarray) -> dict:
+        # 1. Stronger check: see if it's a numpy array, OR if it has a shape attribute
+        if isinstance(image_input, np.ndarray) or hasattr(image_input, 'shape'):
+            img = image_input
+        else:
+            # 2. Treat it as a path ONLY if it's a string or Path object
+            img = cv2.imread(str(image_input))
+            if img is None:
+                raise FileNotFoundError(f"Could not read image from path: {image_input}")
 
-        # Pre-crop the image to isolate the board using precise pixel values
+        # 3. Your existing processing logic continues below...
         img_cropped = self._crop_image(img)
         # img_cropped = img
 
