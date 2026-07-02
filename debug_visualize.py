@@ -14,8 +14,17 @@ def debug_visualize(parser: BoardParser, image_path: str, output_path: str = "de
     
     # Pre-crop the image to isolate the board exactly like the parser does
     img_cropped = parser._crop_image(img)
-    img_rgb = cv2.cvtColor(img_cropped, cv2.COLOR_BGR2RGB)
+    img_rgb = cv2.cvtColor(img_cropped, cv2.COLOR_BGR2RGB) # not cropped
     img_display = img_rgb.copy()
+
+    # Step 0: Highlight the exact target border-color pixels used for cropping
+    target_color = np.array([229, 226, 214], dtype=np.uint8)
+    tolerance = 6
+    mask = cv2.inRange(cv2.cvtColor(img_cropped, cv2.COLOR_BGR2RGB), target_color - tolerance, target_color + tolerance)
+    ys, xs = np.where(mask > 0)
+    for y, x in zip(ys, xs):
+        cv2.circle(img_display, (x, y), 1, (255, 255, 0), 1)
+
     
     # Step 1: Draw detected contours on the cropped canvas
     gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)

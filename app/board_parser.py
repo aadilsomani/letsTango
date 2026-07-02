@@ -34,7 +34,6 @@ class BoardParser:
 
         # 3. Your existing processing logic continues below...
         img_cropped = self._crop_image(img)
-        # img_cropped = img
 
         img_rgb = cv2.cvtColor(img_cropped, cv2.COLOR_BGR2RGB)
         board_box = self._find_board_region(img_rgb)
@@ -54,25 +53,23 @@ class BoardParser:
         }
 
     def _crop_image(self, img: np.ndarray) -> np.ndarray:
-        """Crops the image to isolate the grid using precise pixel boundaries."""
+        """Finds the board by locating the top-left and bottom-right border pixels of the known color."""
         height, width = img.shape[:2]
-        
-        # 50px from left/right, 420px from top, 1040px from bottom
-        y0 = 420
-        y1 = height - 1040
-        x0 = 50
-        x1 = width - 50
 
-        # Safety boundaries check
-        y0 = max(0, min(y0, height))
-        y1 = max(0, min(y1, height))
-        x0 = max(0, min(x0, width))
-        x1 = max(0, min(x1, width))
+        target_color = np.array([229, 226, 214], dtype=np.uint8)
+        tolerance = 6
+        mask = cv2.inRange(cv2.cvtColor(img, cv2.COLOR_BGR2RGB), target_color - tolerance, target_color + tolerance)
+        ys, xs = np.where(mask > 0)
 
-        if y1 <= y0 or x1 <= x0:
-            return img  # fallback if bounds are invalid for this image size
+        topLeft = (min(xs), min(ys))
+        bottomRight = (max(xs), max(ys))
+        padding = 4
+        x0 = max(0, topLeft[0] - padding)
+        y0 = max(0, topLeft[1] - padding)
+        x1 = min(width, bottomRight[0] + padding)
+        y1 = min(height, bottomRight[1] + padding)
 
-        return img[y0:y1, x0:x1]
+        return img[y0:y1, x0:x1]    
 
     def _find_board_region(self, img: np.ndarray) -> Tuple[int, int, int, int]:
         height, width = img.shape[:2]
@@ -85,38 +82,36 @@ class BoardParser:
         min_cell_size = expected_cell_size * 0.6
         max_cell_size = expected_cell_size * 1.4
 
-        valid_boxes = []
+        candidate_boxes = []
         for contour in contours:
             area = cv2.contourArea(contour)
             if area < (min_cell_size ** 2) * 0.5:
                 continue
 
             x, y, w, h = cv2.boundingRect(contour)
-            
-            # Enforce that cells are roughly square
-            aspect_ratio = w / h
+            aspect_ratio = w / h if h > 0 else 0
+
             if not (0.75 <= aspect_ratio <= 1.3):
                 continue
-                
-            # Enforce that cells match the expected grid cell sizing,
-            # which filters out small non-cell symbols (like x, = or other noise)
+
             if not (min_cell_size <= w <= max_cell_size) or not (min_cell_size <= h <= max_cell_size):
                 continue
 
-            valid_boxes.append((x, y, w, h))
+            candidate_boxes.append((x, y, w, h))
 
-        if not valid_boxes:
-            # Fallback to full cropped image if no square cells are detected
+        if not candidate_boxes:
             return 0, 0, width, height
 
-        # Find the bounding box that encompasses all valid cell contours
-        min_x = min(box[0] for box in valid_boxes)
-        min_y = min(box[1] for box in valid_boxes)
-        max_x = max(box[0] + box[2] for box in valid_boxes)
-        max_y = max(box[1] + box[3] for box in valid_boxes)
+        # Prefer the largest cluster of cells, not the whole image.
+        # Sort by area and take the biggest plausible board box.
+        candidate_boxes.sort(key=lambda b: b[2] * b[3], reverse=True)
+        x, y, w, h = candidate_boxes[0]
 
-        best_box = (min_x, min_y, max_x - min_x, max_y - min_y)
-        return best_box
+        # If the first candidate is very small, fall back to the full region.
+        if w * h < width * height * 0.2:
+            return 0, 0, width, height
+
+        return x, y, w, h
 
     def _cell_bounds(self, board_box: Tuple[int, int, int, int], row: int, col: int) -> Tuple[int, int, int, int]:
         x, y, w, h = board_box
