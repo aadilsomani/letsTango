@@ -1,7 +1,47 @@
 import unittest
 from app.board_solver import BoardSolver
+from app.board_parser import BoardParser
 
 class BoardSolverTests(unittest.TestCase):
+    def test_same_on_each_end(self):
+        board = [
+            ["sun", "blank", "blank", "blank", "blank", "sun"],
+            ["blank"] * 6,
+            ["blank"] * 6,
+            ["blank"] * 6,
+            ["blank"] * 6,
+            ["blank"] * 6,
+        ]
+        solver = BoardSolver(board, [])
+        changed = solver.solve_same_on_each_end()
+        changed2 = solver.solve_same_on_each_end()
+
+        self.assertTrue(changed)
+        self.assertTrue(changed2)
+
+        print("\nBoard after solve_same_on_each_end:")
+        for row in solver.board:
+            print(row)
+        self.assertEqual(solver.board[0][1], "moon")
+        self.assertEqual(solver.board[0][4], "moon")
+
+    def test_solve_2_against_edge(self):
+        board = [
+            ["sun", "sun", "moon", "blank", "blank", "blank"],
+            ["blank"] * 6,
+            ["blank"] * 6,
+            ["blank"] * 6,
+            ["blank"] * 6,
+            ["blank"] * 6,
+        ]
+        solver = BoardSolver(board, [])
+        changed = solver.solve_2_against_edge()
+        print("\nBoard after solve_2_against_edge:")
+        for row in solver.board:
+            print(row)
+        self.assertTrue(changed)
+        self.assertEqual(solver.board[0][5], "moon")
+
     def test_solve_consecutive_symbols(self):
         # Row test: S S _ -> S S M
         board = [
@@ -114,6 +154,15 @@ class BoardSolverTests(unittest.TestCase):
             print(step)
             
         self.assertTrue(result["solved"])
+
+    def test_solve_really_hard(self):
+        board = BoardParser().parse_image("IMG_1302.png")
+        solver = BoardSolver(board["board"], board["signs"])
+        result = solver.solve()
+        # print(result)
+        # print("\nSolved board LALA:")
+        # for r in result["board"]:
+        #     print(r)
 
 if __name__ == "__main__":
     unittest.main()

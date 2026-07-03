@@ -19,6 +19,7 @@ class BoardSolver:
         """
         strategies = [
             self.solve_consecutive_symbols,
+            self.solve_2_against_edge,
             self.solve_balanced_counts,
             self.solve_equality_signs,
             self.solve_difference_signs,
@@ -43,6 +44,94 @@ class BoardSolver:
             "solved": is_solved,
             "steps": self.steps
         }
+    
+    @staticmethod
+    def opponent(symbol: str) -> str:
+        return "moon" if symbol == "sun" else "sun"
+    
+    def solve_same_on_each_end(self) -> bool:
+        """
+        Enforce that if a row/column has the same symbol at both ends, the adjacents must be the opposite symbol.
+        For example:
+        - [S, _, _, _, _, S] -> [S, M, _, _, M, S]
+        Returns True if any cells were updated.
+        """
+        # Check rows
+        for r in range(self.grid_size):
+            if self.board[r][0] != "blank" and self.board[r][0] == self.board[r][self.grid_size - 1]:
+                symbol = self.opponent(self.board[r][0])
+                if self.board[r][1] == "blank":
+                    self.board[r][1] = symbol
+                    self.steps.append(f"Filled ({r}, 1) with '{symbol}' because row {r} has same symbols at both ends")
+                    return True
+                if self.board[r][self.grid_size - 2] == "blank":
+                    self.board[r][self.grid_size - 2] = symbol
+                    self.steps.append(f"Filled ({r}, {self.grid_size - 2}) with '{symbol}' because row {r} has same symbols at both ends")
+                    return True
+
+        # Check columns
+        for c in range(self.grid_size):
+            if self.board[0][c] != "blank" and self.board[0][c] == self.board[self.grid_size - 1][c]:
+                symbol = self.opponent(self.board[0][c])
+                if self.board[1][c] == "blank":
+                    self.board[1][c] = symbol
+                    self.steps.append(f"Filled (1, {c}) with '{symbol}' because col {c} has same symbols at both ends")
+                    return True
+                if self.board[self.grid_size - 2][c] == "blank":
+                    self.board[self.grid_size - 2][c] = symbol
+                    self.steps.append(f"Filled ({self.grid_size - 2}, {c}) with '{symbol}' because col {c} has same symbols at both ends")
+                    return True
+
+        return False
+
+    def solve_2_against_edge(self) -> bool:
+        """
+        Enforce that if a row/column has 2 identical symbols at one end of a row or column,
+        the opposite end must be the opposite symbol.
+        For example:
+        - [S, S, M, _, _, _] -> [S, S, M, _, _, M]
+        
+        Returns True if any cells were updated.
+        """
+        # Check rows
+        for r in range(self.grid_size):
+            if self.board[r][0] != "blank" and self.board[r][0] == self.board[r][1]:
+                if self.board[r][self.grid_size - 1] == "blank":
+                    symbol = self.opponent(self.board[r][0])
+                    self.board[r][self.grid_size - 1] = symbol
+                    self.steps.append(
+                        f"Filled ({r}, {self.grid_size - 1}) with '{symbol}' because row {r} starts with two '{self.board[r][0]}'"
+                    )
+                    return True
+            if self.board[r][self.grid_size - 1] != "blank" and self.board[r][self.grid_size - 1] == self.board[r][self.grid_size - 2]:
+                if self.board[r][0] == "blank":
+                    symbol = self.opponent(self.board[r][self.grid_size - 1])
+                    self.board[r][0] = symbol
+                    self.steps.append(
+                        f"Filled ({r}, 0) with '{symbol}' because row {r} ends with two '{self.board[r][self.grid_size - 1]}'"
+                    )
+                    return True
+
+        # Check columns
+        for c in range(self.grid_size):
+            if self.board[0][c] != "blank" and self.board[0][c] == self.board[1][c]:
+                if self.board[self.grid_size - 1][c] == "blank":
+                    symbol = self.opponent(self.board[0][c])
+                    self.board[self.grid_size - 1][c] = symbol
+                    self.steps.append(
+                        f"Filled ({self.grid_size - 1}, {c}) with '{symbol}' because col {c} starts with two '{self.board[0][c]}'"
+                    )
+                    return True
+            if self.board[self.grid_size - 1][c] != "blank" and self.board[self.grid_size - 1][c] == self.board[self.grid_size - 2][c]:
+                if self.board[0][c] == "blank":
+                    symbol = self.opponent(self.board[self.grid_size - 1][c])
+                    self.board[0][c] = symbol
+                    self.steps.append(
+                        f"Filled (0, {c}) with '{symbol}' because col {c} ends with two '{self.board[self.grid_size - 1][c]}'"
+                    )
+                    return True
+
+        return False
 
     def solve_consecutive_symbols(self) -> bool:
         """
@@ -54,9 +143,6 @@ class BoardSolver:
         Returns True if any cells were updated.
         """
         changed = False
-        
-        def opponent(symbol: str) -> str:
-            return "moon" if symbol == "sun" else "sun"
 
         # Walk rows
         for r in range(self.grid_size):
@@ -67,7 +153,7 @@ class BoardSolver:
                 # Check pattern XX_ (left of cell)
                 if c >= 2:
                     if self.board[r][c - 1] != "blank" and self.board[r][c - 1] == self.board[r][c - 2]:
-                        self.board[r][c] = opponent(self.board[r][c - 1])
+                        self.board[r][c] = self.opponent(self.board[r][c - 1])
                         self.steps.append(
                             f"Filled ({r}, {c}) with '{self.board[r][c]}' to avoid 3 consecutive '{self.board[r][c-1]}' in row {r} (cols {c-2} to {c})"
                         )
@@ -76,7 +162,7 @@ class BoardSolver:
                 # Check pattern _XX (right of cell)
                 if c <= self.grid_size - 3:
                     if self.board[r][c + 1] != "blank" and self.board[r][c + 1] == self.board[r][c + 2]:
-                        self.board[r][c] = opponent(self.board[r][c + 1])
+                        self.board[r][c] = self.opponent(self.board[r][c + 1])
                         self.steps.append(
                             f"Filled ({r}, {c}) with '{self.board[r][c]}' to avoid 3 consecutive '{self.board[r][c+1]}' in row {r} (cols {c} to {c+2})"
                         )
@@ -85,7 +171,7 @@ class BoardSolver:
                 # Check pattern X_X (middle)
                 if c >= 1 and c <= self.grid_size - 2:
                     if self.board[r][c - 1] != "blank" and self.board[r][c - 1] == self.board[r][c + 1]:
-                        self.board[r][c] = opponent(self.board[r][c - 1])
+                        self.board[r][c] = self.opponent(self.board[r][c - 1])
                         self.steps.append(
                             f"Filled ({r}, {c}) with '{self.board[r][c]}' to avoid 3 consecutive '{self.board[r][c-1]}' in row {r} (cols {c-1} to {c+1})"
                         )
@@ -100,7 +186,7 @@ class BoardSolver:
                 # Check pattern XX_ (above cell)
                 if r >= 2:
                     if self.board[r - 1][c] != "blank" and self.board[r - 1][c] == self.board[r - 2][c]:
-                        self.board[r][c] = opponent(self.board[r - 1][c])
+                        self.board[r][c] = self.opponent(self.board[r - 1][c])
                         self.steps.append(
                             f"Filled ({r}, {c}) with '{self.board[r][c]}' to avoid 3 consecutive '{self.board[r-1][c]}' in col {c} (rows {r-2} to {r})"
                         )
@@ -109,7 +195,7 @@ class BoardSolver:
                 # Check pattern _XX (below cell)
                 if r <= self.grid_size - 3:
                     if self.board[r + 1][c] != "blank" and self.board[r + 1][c] == self.board[r + 2][c]:
-                        self.board[r][c] = opponent(self.board[r + 1][c])
+                        self.board[r][c] = self.opponent(self.board[r + 1][c])
                         self.steps.append(
                             f"Filled ({r}, {c}) with '{self.board[r][c]}' to avoid 3 consecutive '{self.board[r+1][c]}' in col {c} (rows {r} to {r+2})"
                         )
@@ -118,7 +204,7 @@ class BoardSolver:
                 # Check pattern X_X (middle)
                 if r >= 1 and r <= self.grid_size - 2:
                     if self.board[r - 1][c] != "blank" and self.board[r - 1][c] == self.board[r + 1][c]:
-                        self.board[r][c] = opponent(self.board[r - 1][c])
+                        self.board[r][c] = self.opponent(self.board[r - 1][c])
                         self.steps.append(
                             f"Filled ({r}, {c}) with '{self.board[r][c]}' to avoid 3 consecutive '{self.board[r-1][c]}' in col {c} (rows {r-1} to {r+1})"
                         )
@@ -240,7 +326,7 @@ class BoardSolver:
         return False
 
 if __name__ == "__main__":
-    board = BoardParser().parse_image("board.png")
+    board = BoardParser().parse_image("IMG_1302.png")
     solver = BoardSolver(board["board"], board["signs"])
     solver.solve()
     print(solver.board)
