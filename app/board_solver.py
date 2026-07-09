@@ -21,6 +21,7 @@ class BoardSolver:
             self.solve_consecutive_symbols,
             self.solve_2_against_edge,
             self.solve_balanced_counts,
+            self.solve_adjacent_to_equality_signs,
             self.solve_equality_signs,
             self.solve_difference_signs,
         ]
@@ -49,6 +50,107 @@ class BoardSolver:
     def opponent(symbol: str) -> str:
         return "moon" if symbol == "sun" else "sun"
     
+    def solve_adjacent_to_equality_signs(self) -> bool:
+        """
+        If an '=' sign connects two cells, propagate known values to the other linked
+        cell, and if a nearby cell already holds a value, fill the sign-linked cells
+        with the opposite symbol to avoid local conflicts.
+        """
+        for sign in self.signs:
+            if sign["type"] != "=":
+                continue
+
+            cell1, cell2 = sign["cells"]
+            r1, c1 = cell1
+            r2, c2 = cell2
+
+            v1 = self.board[r1][c1]
+            v2 = self.board[r2][c2]
+
+            if v1 != "blank" and v2 == "blank":
+                self.board[r2][c2] = v1
+                if c1 == c2 and c1 + 1 < self.grid_size and self.board[r2][c1 + 1] == "blank":
+                    self.board[r2][c1 + 1] = v1
+                self.steps.append(
+                    f"Filled ({r2}, {c2}) with '{v1}' via '=' sign from ({r1}, {c1})"
+                )
+                return True
+
+            if v2 != "blank" and v1 == "blank":
+                self.board[r1][c1] = v2
+                if c1 == c2 and c1 + 1 < self.grid_size and self.board[r1][c1 + 1] == "blank":
+                    self.board[r1][c1 + 1] = v2
+                self.steps.append(
+                    f"Filled ({r1}, {c1}) with '{v2}' via '=' sign from ({r2}, {c2})"
+                )
+                return True
+
+            if r1 == r2:
+                row = r1
+                if c1 > 0 and self.board[row][c1 - 1] != "blank":
+                    value = self.opponent(self.board[row][c1 - 1])
+                    changed = False
+                    if self.board[row][c1] == "blank":
+                        self.board[row][c1] = value
+                        changed = True
+                    if self.board[row][c2] == "blank":
+                        self.board[row][c2] = value
+                        changed = True
+                    if changed:
+                        self.steps.append(
+                            f"Filled ({row}, {c1}) and ({row}, {c2}) with '{value}' due to '=' sign and adjacent cell at ({row}, {c1 - 1})"
+                        )
+                        return True
+
+                if c2 < self.grid_size - 1 and self.board[row][c2 + 1] != "blank":
+                    value = self.opponent(self.board[row][c2 + 1])
+                    changed = False
+                    if self.board[row][c1] == "blank":
+                        self.board[row][c1] = value
+                        changed = True
+                    if self.board[row][c2] == "blank":
+                        self.board[row][c2] = value
+                        changed = True
+                    if changed:
+                        self.steps.append(
+                            f"Filled ({row}, {c1}) and ({row}, {c2}) with '{value}' due to '=' sign and adjacent cell at ({row}, {c2 + 1})"
+                        )
+                        return True
+
+            elif c1 == c2:
+                col = c1
+                if r1 > 0 and self.board[r1 - 1][col] != "blank":
+                    value = self.opponent(self.board[r1 - 1][col])
+                    changed = False
+                    if self.board[r1][col] == "blank":
+                        self.board[r1][col] = value
+                        changed = True
+                    if self.board[r2][col] == "blank":
+                        self.board[r2][col] = value
+                        changed = True
+                    if changed:
+                        self.steps.append(
+                            f"Filled ({r1}, {col}) and ({r2}, {col}) with '{value}' due to '=' sign and adjacent cell at ({r1 - 1}, {col})"
+                        )
+                        return True
+
+                if r2 < self.grid_size - 1 and self.board[r2 + 1][col] != "blank":
+                    value = self.opponent(self.board[r2 + 1][col])
+                    changed = False
+                    if self.board[r1][col] == "blank":
+                        self.board[r1][col] = value
+                        changed = True
+                    if self.board[r2][col] == "blank":
+                        self.board[r2][col] = value
+                        changed = True
+                    if changed:
+                        self.steps.append(
+                            f"Filled ({r1}, {col}) and ({r2}, {col}) with '{value}' due to '=' sign and adjacent cell at ({r2 + 1}, {col})"
+                        )
+                        return True
+
+        return False
+
     def solve_same_on_each_end(self) -> bool:
         """
         Enforce that if a row/column has the same symbol at both ends, the adjacents must be the opposite symbol.
@@ -326,7 +428,7 @@ class BoardSolver:
         return False
 
 if __name__ == "__main__":
-    board = BoardParser().parse_image("IMG_1302.png")
+    board = BoardParser().parse_image("boards/IMG_1308.png")
     solver = BoardSolver(board["board"], board["signs"])
     solver.solve()
     print(solver.board)

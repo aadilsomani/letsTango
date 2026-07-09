@@ -3,6 +3,56 @@ from app.board_solver import BoardSolver
 from app.board_parser import BoardParser
 
 class BoardSolverTests(unittest.TestCase):
+    def test_adjacent_to_equal_cells(self):
+        board = [
+            ["sun", "blank", "blank", "blank", "blank", "blank"],
+            ["blank"] * 6,
+            ["blank"] * 6,
+            ["blank"] * 6,
+            ["blank"] * 6,
+            ["blank"] * 6,
+        ]
+        signs = [{"type": "=", "cells": [[0, 1], [0, 2]]}]
+        solver = BoardSolver(board, signs)
+        changed = solver.solve_adjacent_to_equality_signs()
+        self.assertTrue(changed)
+        self.assertEqual(solver.board[0][2], "moon")
+        # invert for column test
+        board2 = [
+            ["blank", "sun", "moon", "sun", "blank", "blank"],
+            ["sun", "moon", "blank", "blank", "blank", "blank"],
+            ["blank", "blank", "blank", "blank", "blank", "blank"],
+            ["blank", "blank", "blank", "blank", "blank", "blank"],
+            ["blank", "blank", "blank", "blank", "sun", "moon"],
+            ["blank", "moon", "sun", "sun", "moon", "blank"]
+        ]
+        signs = [{'type': 'x', 'cells': [(4, 0), (5, 0)], 'center': (97, 901)}, 
+                 {'type': 'x', 'cells': [(4, 0), (4, 1)], 'center': (186, 811)}, 
+                 {'type': 'x', 'cells': [(1, 4), (2, 4)], 'center': (813, 364)}, 
+                 {'type': 'x', 'cells': [(1, 4), (1, 5)], 'center': (902, 274)}, 
+                 {'type': 'x', 'cells': [(0, 5), (1, 5)], 'center': (992, 185)}, 
+                 {'type': '=', 'cells': [(3, 1), (4, 1)], 'center': (276, 723)}]
+        solver2 = BoardSolver(board2, signs)
+        changed2 = solver2.solve_adjacent_to_equality_signs()
+        self.assertTrue(changed2)
+        print("\nBoard after solve_adjacent_to_equality_signs:")
+        for row in solver2.board:
+            print(row)
+        self.assertEqual(solver2.board[4][1], "sun")
+    def test_adjacent_to_equal_cells_does_not_retrigger_when_already_satisfied(self):
+        board = [
+            ["sun", "moon", "moon", "blank", "blank", "blank"],
+            ["blank"] * 6,
+            ["blank"] * 6,
+            ["blank"] * 6,
+            ["blank"] * 6,
+            ["blank"] * 6,
+        ]
+        signs = [{"type": "=", "cells": [[0, 1], [0, 2]]}]
+        solver = BoardSolver(board, signs)
+        changed = solver.solve_adjacent_to_equality_signs()
+        self.assertFalse(changed)
+
     def test_same_on_each_end(self):
         board = [
             ["sun", "blank", "blank", "blank", "blank", "sun"],
@@ -156,7 +206,7 @@ class BoardSolverTests(unittest.TestCase):
         self.assertTrue(result["solved"])
 
     def test_solve_really_hard(self):
-        board = BoardParser().parse_image("IMG_1302.png")
+        board = BoardParser().parse_image("boards/IMG_1302.png")
         solver = BoardSolver(board["board"], board["signs"])
         result = solver.solve()
         # print(result)
